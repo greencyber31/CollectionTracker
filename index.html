@@ -470,9 +470,14 @@
                 <i class="fa-solid fa-layer-group"></i>
                 <h1>Collection<span>Tracker</span></h1>
             </div>
-            <button id="add-btn" class="btn-primary">
-                <i class="fa-solid fa-plus"></i> Add New Item
-            </button>
+            <div style="display: flex; gap: 10px;">
+                <button id="settings-btn" class="btn-primary" style="background: var(--glass-bg); padding: 12px;">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+                <button id="add-btn" class="btn-primary">
+                    <i class="fa-solid fa-plus"></i> Add New Item
+                </button>
+            </div>
         </header>
 
         <main>
@@ -533,6 +538,42 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Data Management</h2>
+                <button id="close-settings-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="view-body" style="flex-direction: column; gap: 20px;">
+                <p style="color: var(--text-secondary); line-height: 1.5;">
+                    Backup your collection to a file or restore from a previous backup.
+                    <br><br>
+                    <strong style="color: #FF4757;">Note:</strong> Restoring will add items to your current list. It
+                    will not delete existing items.
+                </p>
+
+                <button id="export-btn" class="btn-primary" style="width: 100%; justify-content: center;">
+                    <i class="fa-solid fa-download"></i> Export Backup File
+                </button>
+
+                <div style="width: 100%; height: 1px; background: var(--glass-border); margin: 10px 0;"></div>
+
+                <div class="file-upload-wrapper">
+                    <input type="file" id="import-file" accept=".json">
+                    <div class="file-custom-label" style="text-align: center;">
+                        <i class="fa-solid fa-upload"></i>
+                        <span id="import-label">Select Backup File to Restore...</span>
+                    </div>
+                </div>
+
+                <button id="import-btn" class="btn-submit" disabled style="opacity: 0.5; cursor: not-allowed;">
+                    Restore Collection
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- View Item Modal -->
     <div id="view-modal" class="modal-overlay">
         <div class="modal-content glass-panel view-panel">
@@ -587,13 +628,26 @@
         function initializeApp() {
             const modal = document.getElementById('modal');
             const viewModal = document.getElementById('view-modal');
+            const settingsModal = document.getElementById('settings-modal');
+
             const addBtn = document.getElementById('add-btn');
+            const settingsBtn = document.getElementById('settings-btn');
+
             const closeModalBtn = document.getElementById('close-modal');
             const closeViewModalBtn = document.getElementById('close-view-modal');
+            const closeSettingsModalBtn = document.getElementById('close-settings-modal');
+
             const addItemForm = document.getElementById('add-item-form');
             const itemsGrid = document.getElementById('items-grid');
+
             const fileInput = document.getElementById('image');
             const fileLabel = document.querySelector('.file-custom-label span');
+
+            // Settings Elements
+            const exportBtn = document.getElementById('export-btn');
+            const importBtn = document.getElementById('import-btn');
+            const importFile = document.getElementById('import-file');
+            const importLabel = document.getElementById('import-label');
 
             // Load initial data
             loadItems();
@@ -615,6 +669,13 @@
                 if (e.target === modal) {
                     modal.classList.remove('active');
                 }
+            });
+
+            // Settings Modal Controls
+            settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
+            closeSettingsModalBtn.addEventListener('click', () => settingsModal.classList.remove('active'));
+            settingsModal.addEventListener('click', (e) => {
+                if (e.target === settingsModal) settingsModal.classList.remove('active');
             });
 
             viewModal.addEventListener('click', (e) => {
@@ -831,12 +892,86 @@
                     cardElement.style.opacity = '0';
                     setTimeout(() => {
                         cardElement.remove();
-                        if (itemsGrid.children.length === 0) {
-                            loadItems(); // Restore empty state
+                        if (itemsGrid.querySelector('.item-card') === null) {
+                            loadItems(); // Restore empty state if needed
                         }
                     }, 300);
                 };
             };
+
+            // --- Export / Import Logic ---
+
+            exportBtn.addEventListener('click', () => {
+                const transaction = db.transaction([STORE_NAME], "readonly");
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.getAll();
+
+                request.onsuccess = (event) => {
+                    const items = event.target.result;
+                    const dataStr = JSON.stringify(items, null, 2);
+                    const blob = new Blob([dataStr], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const date = new Date().toISOString().slice(0, 10);
+                    a.download = `collection_backup_${date}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                };
+            });
+
+            importFile.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    importLabel.textContent = e.target.files[0].name;
+                    importBtn.disabled = false;
+                    importBtn.style.opacity = '1';
+                    importBtn.style.cursor = 'pointer';
+                }
+            });
+
+            importBtn.addEventListener('click', () => {
+                const file = importFile.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const items = JSON.parse(e.target.result);
+                        if (!Array.isArray(items)) throw new Error("Invalid format");
+
+                        // Import Process
+                        let successCount = 0;
+                        const transaction = db.transaction([STORE_NAME], "readwrite");
+                        const objectStore = transaction.objectStore(STORE_NAME);
+
+                        items.forEach(item => {
+                            // Remove ID to let DB generate new unique ones (avoids conflicts)
+                            delete item.id;
+                            objectStore.add(item);
+                            successCount++;
+                        });
+
+                        transaction.oncomplete = () => {
+                            alert(`Successfully restored ${successCount} items!`);
+                            settingsModal.classList.remove('active');
+                            loadItems(); // Refresh View
+                            // Reset Input
+                            importFile.value = '';
+                            importLabel.textContent = 'Select Backup File to Restore...';
+                            importBtn.disabled = true;
+                            importBtn.style.opacity = '0.5';
+                        };
+
+                    } catch (err) {
+                        alert("Failed to parse backup file. Please make sure it's a valid JSON file.");
+                        console.error(err);
+                    }
+                };
+                reader.readAsText(file);
+            });
         }
 
         // Register Service Worker
