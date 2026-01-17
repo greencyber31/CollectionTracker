@@ -573,6 +573,61 @@
             opacity: 1;
             border-color: var(--accent);
         }
+
+        /* Dropdown Menu */
+        .settings-container {
+            position: relative;
+            margin-right: 10px;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #1a1d24;
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 180px;
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            margin-top: 10px;
+        }
+
+        .dropdown-menu.active {
+            display: flex;
+        }
+
+        .dropdown-item {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            padding: 12px 16px;
+            text-align: left;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-item.delete-option {
+            color: #FF4757;
+        }
+
+        .dropdown-item.delete-option:hover {
+            background: rgba(255, 71, 87, 0.1);
+        }
     </style>
 </head>
 
@@ -726,7 +781,22 @@
         <div class="modal-content glass-panel view-panel">
             <div class="modal-header">
                 <h2 id="view-name">Item Name</h2>
-                <button id="close-view-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div class="settings-container">
+                        <button id="view-settings-btn" class="btn-icon">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                        <div id="view-options-dropdown" class="dropdown-menu">
+                            <button id="view-edit-btn" class="dropdown-item">
+                                <i class="fa-solid fa-pen" style="width: 20px;"></i> Edit Item
+                            </button>
+                            <button id="view-delete-btn" class="dropdown-item delete-option">
+                                <i class="fa-solid fa-trash" style="width: 20px;"></i> Delete Item
+                            </button>
+                        </div>
+                    </div>
+                    <button id="close-view-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+                </div>
             </div>
             <div class="view-body">
                 <div class="view-image-container">
@@ -747,15 +817,7 @@
                     <div id="view-gallery" class="gallery-container"></div>
 
                     <!-- View Actions -->
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button id="view-edit-btn" class="btn-primary" style="flex: 1; justify-content: center;">
-                            <i class="fa-solid fa-pen"></i> Edit Item
-                        </button>
-                        <button id="view-delete-btn" class="btn-primary"
-                            style="flex: 1; justify-content: center; background: rgba(255, 71, 87, 0.1); border: 1px solid rgba(255, 71, 87, 0.5); color: #FF4757;">
-                            <i class="fa-solid fa-trash"></i> Delete Item
-                        </button>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -873,6 +935,22 @@
             viewModal.addEventListener('click', (e) => {
                 if (e.target === viewModal) {
                     viewModal.classList.remove('active');
+                }
+            });
+
+            // Settings Dropdown Logic
+            const settingsBtnView = document.getElementById('view-settings-btn');
+            const dropdownView = document.getElementById('view-options-dropdown');
+
+            settingsBtnView.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdownView.classList.toggle('active');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!settingsBtnView.contains(e.target) && !dropdownView.contains(e.target)) {
+                    dropdownView.classList.remove('active');
                 }
             });
 
