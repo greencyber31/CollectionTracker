@@ -435,6 +435,28 @@
                 flex: 2;
             }
         }
+
+        /* Group Headers */
+        .group-container {
+            margin-bottom: 40px;
+        }
+
+        .group-header {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .group-header i {
+            color: var(--accent);
+            font-size: 20px;
+        }
     </style>
 </head>
 
@@ -487,6 +509,13 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="group">Group / Category (Optional)</label>
+                    <input type="text" id="group" name="group" list="group-suggestions"
+                        placeholder="e.g. Cameras, Lenses">
+                    <datalist id="group-suggestions"></datalist>
+                </div>
+
+                <div class="form-group">
                     <label for="image">Image (Optional)</label>
                     <div class="file-upload-wrapper">
                         <input type="file" id="image" name="image" accept="image/*">
@@ -520,6 +549,10 @@
                     <div class="view-description">
                         <label>Description</label>
                         <p id="view-description">No description.</p>
+                    </div>
+                    <div class="view-description" id="view-group-container" style="display: none;">
+                        <label>Group</label>
+                        <p id="view-group"></p>
                     </div>
                 </div>
             </div>
@@ -623,6 +656,7 @@
                         name: document.getElementById('name').value,
                         price: parseFloat(document.getElementById('price').value),
                         description: document.getElementById('description').value,
+                        group: document.getElementById('group').value.trim(),
                         image: imageData,
                         created: new Date().toISOString()
                     };
@@ -665,6 +699,10 @@
 
                 request.onsuccess = (event) => {
                     const items = event.target.result;
+
+                    // Update Suggestions
+                    updateGroupSuggestions(items);
+
                     if (!items || items.length === 0) {
                         itemsGrid.innerHTML = `
                             <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">
@@ -673,16 +711,60 @@
                             </div>
                         `;
                     } else {
-                        // Reverse sort locally by ID (descending)
-                        items.sort((a, b) => b.id - a.id);
-                        items.forEach(addItemToDOM);
+                        // Group Items
+                        const groups = {};
+
+                        items.forEach(item => {
+                            const groupName = item.group || 'General';
+                            if (!groups[groupName]) {
+                                groups[groupName] = [];
+                            }
+                            groups[groupName].push(item);
+                        });
+
+                        // Render Groups
+                        Object.keys(groups).sort().forEach(groupName => {
+                            const groupContainer = document.createElement('div');
+                            groupContainer.className = 'group-container';
+                            groupContainer.style.gridColumn = "1 / -1";
+
+                            const itemsContainer = document.createElement('div');
+                            itemsContainer.className = 'items-grid';
+
+                            groupContainer.innerHTML = `
+                                <div class="group-header">
+                                    <i class="fa-solid fa-layer-group"></i> ${groupName}
+                                </div>
+                            `;
+
+                            groupContainer.appendChild(itemsContainer);
+                            itemsGrid.appendChild(groupContainer);
+
+                            // Sort items in group by ID descending
+                            groups[groupName].sort((a, b) => b.id - a.id).forEach(item => {
+                                addItemToDOM(item, itemsContainer);
+                            });
+                        });
                     }
                 };
             }
 
-            function addItemToDOM(item) {
-                if (itemsGrid.querySelector('.fa-box-open')) {
-                    itemsGrid.innerHTML = '';
+            function updateGroupSuggestions(items) {
+                const groups = new Set(items.map(i => i.group).filter(g => g));
+                const datalist = document.getElementById('group-suggestions');
+                datalist.innerHTML = '';
+                groups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group;
+                    datalist.appendChild(option);
+                });
+            }
+
+            function addItemToDOM(item, container) {
+                // Fallback if container not provided (for single add)
+                if (!container) {
+                    loadItems(); // Reload full view to handle grouping correctly
+                    return;
                 }
 
                 const card = document.createElement('div');
@@ -707,6 +789,16 @@
                     document.getElementById('view-price').textContent = '$' + item.price.toFixed(2);
                     document.getElementById('view-description').textContent = item.description || 'No description provided.';
 
+                    const groupEl = document.getElementById('view-group');
+                    const groupCont = document.getElementById('view-group-container');
+                    if (item.group) {
+                        groupEl.textContent = item.group;
+                        groupCont.style.display = 'block';
+                    } else {
+                        groupCont.style.display = 'none';
+                    }
+
+
                     const img = document.getElementById('view-image');
                     if (item.image) {
                         img.src = item.image;
@@ -714,7 +806,7 @@
                         img.src = 'https://placehold.co/600x400/1a1d24/FFF?text=No+Image';
                     }
 
-                    viewModal.classList.add('active');
+                    document.getElementById('view-modal').classList.add('active');
                 };
 
                 // Add event listener for delete to avoid triggering the card click
@@ -724,7 +816,7 @@
                     deleteItem(item.id, card);
                 }
 
-                itemsGrid.insertBefore(card, itemsGrid.firstChild);
+                container.insertBefore(card, container.firstChild);
             }
 
             window.deleteItem = (id, cardElement) => {
