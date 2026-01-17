@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collection Tracker (Offline)</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #0f1115;
+            --text-primary: #ededed;
+            --text-secondary: #a0a0a0;
+            --accent: #6c5ce7;
+            --accent-hover: #5649c0;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --card-hover: rgba(255, 255, 255, 0.06);
+            --font-main: 'Outfit', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-main);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Background Blobs */
+        .background-glob {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(108, 92, 231, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+            top: -200px;
+            left: -200px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .glob-2 {
+            top: auto;
+            bottom: -200px;
+            left: auto;
+            right: -200px;
+            background: radial-gradient(circle, rgba(231, 92, 168, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 50px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo i {
+            font-size: 24px;
+            color: var(--accent);
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .logo h1 span {
+            color: var(--accent);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #a29bfe);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Grid */
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .loading-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
+
+        /* Cards */
+        .item-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+        }
+
+        .item-card:hover {
+            background: var(--card-hover);
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background-color: #1a1d24;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-price {
+            background: rgba(108, 92, 231, 0.15);
+            color: #a29bfe;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .card-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-btn:hover {
+            background: #FF4757;
+        }
+
+        .item-card:hover .delete-btn {
+            opacity: 1;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .glass-panel {
+            background: #161920;
+            border: 1px solid var(--glass-border);
+            padding: 30px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .modal-overlay.active .glass-panel {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .btn-icon:hover {
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: var(--accent-hover);
+        }
+
+        /* File Upload */
+        .file-upload-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-upload-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-custom-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px dashed var(--glass-border);
+            padding: 12px;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .file-upload-wrapper:hover .file-custom-label {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        /* View Modal Specifics */
+        .view-panel {
+            max-width: 800px;
+        }
+
+        .view-body {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .view-image-container {
+            width: 100%;
+            max-height: 400px;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--glass-border);
+        }
+
+        .view-image-container img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+        }
+
+        .view-details {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .view-price-tag {
+            align-self: flex-start;
+            background: var(--accent);
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+        }
+
+        .view-description label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .view-description p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #e0e0e0;
+            white-space: pre-wrap;
+        }
+
+        @media (min-width: 768px) {
+            .view-body {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+
+            .view-image-container {
+                flex: 3;
+            }
+
+            .view-details {
+                flex: 2;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background-glob"></div>
+    <div class="background-glob glob-2"></div>
+
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-layer-group"></i>
+                <h1>Collection<span>Tracker</span></h1>
+            </div>
+            <button id="add-btn" class="btn-primary">
+                <i class="fa-solid fa-plus"></i> Add New Item
+            </button>
+        </header>
+
+        <main>
+            <div id="items-grid" class="items-grid">
+                <div class="loading-state">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    <p>Loading your collection...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div id="modal" class="modal-overlay">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Add New Item</h2>
+                <button id="close-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="add-item-form">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required placeholder="e.g. Vintage Camera">
+                </div>
+
+                <div class="form-group">
+                    <label for="price">Price ($)</label>
+                    <input type="number" id="price" name="price" step="0.01" required placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description (Optional)</label>
+                    <textarea id="description" name="description" rows="3" placeholder="Item details..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="image">Image (Optional)</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="image" name="image" accept="image/*">
+                        <div class="file-custom-label">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span>Choose an image...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn-submit">Add into Collection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Item Modal -->
+    <div id="view-modal" class="modal-overlay">
+        <div class="modal-content glass-panel view-panel">
+            <div class="modal-header">
+                <h2 id="view-name">Item Name</h2>
+                <button id="close-view-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="view-body">
+                <div class="view-image-container">
+                    <img id="view-image" src="" alt="Item Image">
+                </div>
+                <div class="view-details">
+                    <div class="view-price-tag" id="view-price">$0.00</div>
+                    <div class="view-description">
+                        <label>Description</label>
+                        <p id="view-description">No description.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DB Config
+        const DB_NAME = 'CollectionDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'items';
+        let db;
+
+        // Init DB
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = (event) => {
+            console.error("Database error: " + event.target.errorCode);
+            alert("Failed to open local database.");
+        };
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            const objectStore = db.createObjectStore(STORE_NAME, { keyPath: "id", autoIncrement: true });
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            initializeApp();
+        };
+
+        function initializeApp() {
+            const modal = document.getElementById('modal');
+            const viewModal = document.getElementById('view-modal');
+            const addBtn = document.getElementById('add-btn');
+            const closeModalBtn = document.getElementById('close-modal');
+            const closeViewModalBtn = document.getElementById('close-view-modal');
+            const addItemForm = document.getElementById('add-item-form');
+            const itemsGrid = document.getElementById('items-grid');
+            const fileInput = document.getElementById('image');
+            const fileLabel = document.querySelector('.file-custom-label span');
+
+            // Load initial data
+            loadItems();
+
+            // Modal Controls
+            addBtn.addEventListener('click', () => {
+                modal.classList.add('active');
+            });
+
+            closeModalBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+
+            closeViewModalBtn.addEventListener('click', () => {
+                viewModal.classList.remove('active');
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+
+            viewModal.addEventListener('click', (e) => {
+                if (e.target === viewModal) {
+                    viewModal.classList.remove('active');
+                }
+            });
+
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    fileLabel.textContent = e.target.files[0].name;
+                } else {
+                    fileLabel.textContent = 'Choose an image...';
+                }
+            });
+
+            // Form Submit
+            addItemForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const submitBtn = addItemForm.querySelector('.btn-submit');
+                submitBtn.textContent = 'Adding...';
+                submitBtn.disabled = true;
+
+                try {
+                    const file = fileInput.files[0];
+                    let imageData = null;
+
+                    if (file) {
+                        imageData = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => resolve(e.target.result);
+                            reader.readAsDataURL(file);
+                        });
+                    }
+
+                    const newItem = {
+                        name: document.getElementById('name').value,
+                        price: parseFloat(document.getElementById('price').value),
+                        description: document.getElementById('description').value,
+                        image: imageData,
+                        created: new Date().toISOString()
+                    };
+
+                    const transaction = db.transaction([STORE_NAME], "readwrite");
+                    const objectStore = transaction.objectStore(STORE_NAME);
+                    const request = objectStore.add(newItem);
+
+                    request.onsuccess = () => {
+                        // We also need the ID, which is in request.result
+                        newItem.id = request.result;
+                        addItemToDOM(newItem);
+
+                        modal.classList.remove('active');
+                        addItemForm.reset();
+                        fileLabel.textContent = 'Choose an image...';
+                        submitBtn.textContent = 'Add into Collection';
+                        submitBtn.disabled = false;
+                    };
+
+                    transaction.onerror = () => {
+                        alert('Failed to save to database');
+                        submitBtn.textContent = 'Add into Collection';
+                        submitBtn.disabled = false;
+                    };
+
+                } catch (error) {
+                    console.error(error);
+                    alert('An error occurred');
+                    submitBtn.textContent = 'Add into Collection';
+                    submitBtn.disabled = false;
+                }
+            });
+
+            function loadItems() {
+                itemsGrid.innerHTML = '';
+                const transaction = db.transaction([STORE_NAME], "readonly");
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.getAll(); // get all items
+
+                request.onsuccess = (event) => {
+                    const items = event.target.result;
+                    if (!items || items.length === 0) {
+                        itemsGrid.innerHTML = `
+                            <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">
+                                <i class="fa-solid fa-box-open" style="font-size: 40px; margin-bottom: 20px; opacity: 0.5;"></i>
+                                <p>No items in your collection yet.</p>
+                            </div>
+                        `;
+                    } else {
+                        // Reverse sort locally by ID (descending)
+                        items.sort((a, b) => b.id - a.id);
+                        items.forEach(addItemToDOM);
+                    }
+                };
+            }
+
+            function addItemToDOM(item) {
+                if (itemsGrid.querySelector('.fa-box-open')) {
+                    itemsGrid.innerHTML = '';
+                }
+
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.innerHTML = `
+                    <button class="delete-btn" onclick="deleteItem(this, ${item.id})">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    <img src="${item.image ? item.image : 'https://placehold.co/600x400/1a1d24/FFF?text=No+Image'}" alt="${item.name}" class="card-image">
+                    <div class="card-content">
+                        <div class="card-header">
+                            <h3 class="card-title">${item.name}</h3>
+                            <span class="card-price">$${item.price.toFixed(2)}</span>
+                        </div>
+                        <p class="card-desc">${item.description || 'No description provided.'}</p>
+                    </div>
+                `;
+
+                // Add View Functionality
+                card.onclick = () => {
+                    document.getElementById('view-name').textContent = item.name;
+                    document.getElementById('view-price').textContent = '$' + item.price.toFixed(2);
+                    document.getElementById('view-description').textContent = item.description || 'No description provided.';
+
+                    const img = document.getElementById('view-image');
+                    if (item.image) {
+                        img.src = item.image;
+                    } else {
+                        img.src = 'https://placehold.co/600x400/1a1d24/FFF?text=No+Image';
+                    }
+
+                    viewModal.classList.add('active');
+                };
+
+                // Add event listener for delete to avoid triggering the card click
+                // This time we need to be careful with onclick event bubbling
+                card.querySelector('.delete-btn').onclick = (e) => {
+                    e.stopPropagation();
+                    deleteItem(item.id, card);
+                }
+
+                itemsGrid.insertBefore(card, itemsGrid.firstChild);
+            }
+
+            window.deleteItem = (id, cardElement) => {
+                if (!confirm('Are you sure you want to delete this item?')) return;
+
+                const transaction = db.transaction([STORE_NAME], "readwrite");
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.delete(id);
+
+                request.onsuccess = () => {
+                    cardElement.style.transform = 'scale(0.9)';
+                    cardElement.style.opacity = '0';
+                    setTimeout(() => {
+                        cardElement.remove();
+                        if (itemsGrid.children.length === 0) {
+                            loadItems(); // Restore empty state
+                        }
+                    }, 300);
+                };
+            };
+        }
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker Registered'))
+                .catch((error) => console.log('Service Worker Registration Failed:', error));
+        }
+    </script>
+</body>
+
+</html>

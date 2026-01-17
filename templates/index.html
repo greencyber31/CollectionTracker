@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collection Tracker</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="background-glob"></div>
+    <div class="background-glob glob-2"></div>
+
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-layer-group"></i>
+                <h1>Collection<span>Tracker</span></h1>
+            </div>
+            <button id="add-btn" class="btn-primary">
+                <i class="fa-solid fa-plus"></i> Add New Item
+            </button>
+        </header>
+
+        <main>
+            <div id="items-grid" class="items-grid">
+                <!-- Items will be injected here by JS -->
+                <div class="loading-state">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                    <p>Loading your collection...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div id="modal" class="modal-overlay">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Add New Item</h2>
+                <button id="close-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="add-item-form">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required placeholder="e.g. Vintage Camera">
+                </div>
+
+                <div class="form-group">
+                    <label for="price">Price ($)</label>
+                    <input type="number" id="price" name="price" step="0.01" required placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3" placeholder="Item details..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="image">Image</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="image" name="image" accept="image/*">
+                        <div class="file-custom-label">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span>Choose an image...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn-submit">Add into Collection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Item Modal -->
+    <div id="view-modal" class="modal-overlay">
+        <div class="modal-content glass-panel view-panel">
+            <div class="modal-header">
+                <h2 id="view-name">Item Name</h2>
+                <button id="close-view-modal" class="btn-icon"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="view-body">
+                <div class="view-image-container">
+                    <img id="view-image" src="" alt="Item Image">
+                </div>
+                <div class="view-details">
+                    <div class="view-price-tag" id="view-price">$0.00</div>
+                    <div class="view-description">
+                        <label>Description</label>
+                        <p id="view-description">No description.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+
+</html>

@@ -1,0 +1,15 @@
+{
+    "name": "Collection Tracker",
+    "short_name": "Tracker",
+    "start_url": "offline_tracker.html",
+    "display": "standalone",
+    "background_color": "#0f1115",
+    "theme_color": "#6c5ce7",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
