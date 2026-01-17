@@ -2,6 +2,7 @@ const CACHE_NAME = 'collection-tracker-v1';
 const ASSETS = [
     './',
     './offline_tracker.html',
+    './index.html',
     './manifest.json',
     './icon.png',
     'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap',
