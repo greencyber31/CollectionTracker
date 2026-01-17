@@ -137,6 +137,39 @@
             transform: translateY(0);
         }
 
+        /* Floating Action Button */
+        .fab-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-bright), var(--accent));
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.2s, box-shadow 0.2s;
+            /* Safe area for mobile */
+            bottom: calc(30px + env(safe-area-inset-bottom));
+            right: calc(30px + env(safe-area-inset-right));
+        }
+
+        .fab-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.5);
+        }
+
+        .fab-btn:active {
+            transform: scale(0.95);
+        }
+
         /* Search Bar */
         .search-container {
             position: relative;
@@ -681,9 +714,6 @@
                 <button id="settings-btn" class="btn-primary" style="padding: 10px 15px;">
                     <i class="fa-solid fa-gear"></i>
                 </button>
-                <button id="add-btn" class="btn-primary">
-                    <i class="fa-solid fa-plus"></i> Add Item
-                </button>
             </div>
         </header>
 
@@ -818,6 +848,12 @@
             </div>
         </div>
     </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button id="add-btn" class="fab-btn">
+        <i class="fa-solid fa-plus"></i>
+    </button>
 
     <!-- View Item Modal -->
     <div id="view-modal" class="modal-overlay">
