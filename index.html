@@ -688,6 +688,13 @@
             <input type="text" id="search-input" class="search-input" placeholder="Search items...">
         </div>
 
+        <div id="back-nav-container" style="display: none; padding: 0 20px; margin-bottom: 10px;">
+            <button id="back-to-groups-btn" class="btn-primary"
+                style="padding: 8px 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-secondary);">
+                <i class="fa-solid fa-arrow-left"></i> Back to Groups
+            </button>
+        </div>
+
         <main>
             <div id="items-grid" class="items-grid">
                 <div class="loading-state">
@@ -907,6 +914,7 @@
             let currentImages = []; // Stores Base64 strings
             let editingId = null; // Track if we are editing an existing item
             let editingCreated = null; // Track original creation date
+            let activeGroup = null; // null = Dashboard, string = Specific Group Name
 
             // Search Vars
             let allItems = []; // Cache for filtering
@@ -1115,7 +1123,6 @@
                 const transaction = db.transaction([STORE_NAME], "readonly");
                 const objectStore = transaction.objectStore(STORE_NAME);
                 const request = objectStore.getAll(); // get all items
-
                 request.onsuccess = (event) => {
                     allItems = event.target.result; // Cache items
                     updateGroupSuggestions(allItems);
@@ -1124,7 +1131,7 @@
             }
 
             function renderItems(items) {
-                itemsGrid.innerHTML = '';
+                const backNav = document.getElementById('back-nav-container');
 
                 if (!items || items.length === 0) {
                     itemsGrid.innerHTML = `
@@ -1133,58 +1140,76 @@
                             <p>No items found.</p>
                         </div>
                     `;
+                    backNav.style.display = searchInput.value ? 'none' : (activeGroup ? 'block' : 'none');
                     return;
                 }
 
-                // Group Items
-                const groups = {};
+                // If searching, show flat list
+                if (searchInput.value.trim() !== '') {
+                    backNav.style.display = 'none';
+                    items.forEach(item => addItemToDOM(item, itemsGrid));
+                    return;
+                }
 
+                // Group Data Logic
+                const groups = {};
                 items.forEach(item => {
                     const groupName = item.group || 'General';
-                    if (!groups[groupName]) {
-                        groups[groupName] = [];
-                    }
+                    if (!groups[groupName]) groups[groupName] = [];
                     groups[groupName].push(item);
                 });
 
-                // Render Groups
-                Object.keys(groups).sort().forEach(groupName => {
-                    const groupContainer = document.createElement('div');
-                    groupContainer.className = 'group-container';
-                    groupContainer.style.gridColumn = "1 / -1";
+                itemsGrid.innerHTML = ''; // Clear grid
 
-                    const header = document.createElement('div');
-                    header.className = 'group-header';
-                    header.innerHTML = `
-                         <span><i class="fa-solid fa-layer-group" style="margin-right: 10px; color: var(--accent);"></i> ${groupName}</span>
-                         <i class="fa-solid fa-chevron-down"></i>
-                    `;
+                // Dashboard View (Show Group Cards)
+                if (activeGroup === null) {
+                    backNav.style.display = 'none';
 
-                    const itemsContainer = document.createElement('div');
-                    itemsContainer.className = 'group-items'; // Use new class instead of items-grid to avoid nested grid issues if any, but actually items-grid styles are what we want.
-                    // Let's use both or just group-items and replicate styles? Use inherited grid style from CSS change above.
-                    // Wait, items-grid is selector for the MAIN container too.
-                    // The CSS modification changed .items-grid.
-                    // Let's make sure the inner container uses the grid layout.
-                    itemsContainer.classList.add('items-grid');
-                    itemsContainer.classList.add('group-items'); // For collapse logic
+                    Object.keys(groups).sort().forEach(groupName => {
+                        const groupItems = groups[groupName];
+                        const coverItem = groupItems.find(i => i.image) || groupItems[0];
+                        const coverImage = coverItem && coverItem.image ? coverItem.image : 'https://placehold.co/600x400/1a1d24/FFF?text=Folder';
 
-                    // Toggle Logic
-                    header.addEventListener('click', () => {
-                        header.classList.toggle('collapsed');
-                        itemsContainer.classList.toggle('collapsed');
+                        const card = document.createElement('div');
+                        card.className = 'item-card'; // Reuse item card style
+                        card.innerHTML = `
+                             <img src="${coverImage}" class="card-image" style="opacity: 0.8;">
+                             <div class="card-content">
+                                 <div class="card-header">
+                                     <h3 class="card-title"><i class="fa-solid fa-folder" style="color: var(--accent); margin-right: 8px;"></i>${groupName}</h3>
+                                 </div>
+                                 <p class="card-desc" style="margin-top: 5px;">${groupItems.length} items</p>
+                             </div>
+                        `;
+
+                        card.onclick = () => {
+                            activeGroup = groupName;
+                            renderItems(allItems); // Re-render with active group
+                        };
+
+                        itemsGrid.appendChild(card);
                     });
+                }
+                // Group Detail View (Show Items in Group)
+                else {
+                    backNav.style.display = 'block';
 
-                    groupContainer.appendChild(header);
-                    groupContainer.appendChild(itemsContainer);
-                    itemsGrid.appendChild(groupContainer);
+                    // Filter items for active group
+                    const groupItems = groups[activeGroup] || [];
+
+                    if (groupItems.length === 0) {
+                        activeGroup = null; // Reset if group empty/deleted
+                        renderItems(allItems);
+                        return;
+                    }
 
                     // Sort items in group by ID descending
-                    groups[groupName].sort((a, b) => b.id - a.id).forEach(item => {
-                        addItemToDOM(item, itemsContainer);
+                    groupItems.sort((a, b) => b.id - a.id).forEach(item => {
+                        addItemToDOM(item, itemsGrid);
                     });
-                });
+                }
             }
+
 
             function updateGroupSuggestions(items) {
                 const groups = new Set(items.map(i => i.group).filter(g => g));
