@@ -945,6 +945,11 @@
 
             // Modal Controls
             addBtn.addEventListener('click', () => {
+                // Update suggestions based on current allItems
+                if (typeof allItems !== 'undefined') {
+                    updateGroupSuggestions(allItems);
+                }
+
                 editingId = null; // Reset to Add Mode
                 editingCreated = null;
                 addItemForm.reset();
