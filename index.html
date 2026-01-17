@@ -457,6 +457,74 @@
             color: var(--accent);
             font-size: 20px;
         }
+
+        .group-header i {
+            color: var(--accent);
+            font-size: 20px;
+        }
+
+        /* Image Previews */
+        .image-previews {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            margin-top: 15px;
+            padding-bottom: 5px;
+        }
+
+        .preview-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid var(--glass-border);
+            position: relative;
+        }
+
+        .preview-container {
+            position: relative;
+        }
+
+        .remove-thumb {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #FF4757;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Gallery in View Modal */
+        .gallery-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            overflow-x: auto;
+        }
+
+        .gallery-thumb {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .gallery-thumb.active {
+            opacity: 1;
+            border-color: var(--accent);
+        }
     </style>
 </head>
 
@@ -521,14 +589,26 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="image">Image (Optional)</label>
-                    <div class="file-upload-wrapper">
-                        <input type="file" id="image" name="image" accept="image/*" capture="environment">
-                        <div class="file-custom-label">
-                            <i class="fa-solid fa-camera"></i>
-                            <span>Take Photo / Choose Image...</span>
+                    <label>Images (Max 5 Uploads + 5 Photos)</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <!-- Upload Button -->
+                        <div class="file-upload-wrapper" style="flex: 1;">
+                            <input type="file" id="image-upload" accept="image/*" multiple>
+                            <div class="file-custom-label" style="text-align: center; height: 100%;">
+                                <i class="fa-solid fa-images"></i>
+                                <span>Upload Files</span>
+                            </div>
+                        </div>
+                        <!-- Camera Button -->
+                        <div class="file-upload-wrapper" style="flex: 1;">
+                            <input type="file" id="camera-upload" accept="image/*" capture="environment">
+                            <div class="file-custom-label" style="text-align: center; height: 100%;">
+                                <i class="fa-solid fa-camera"></i>
+                                <span>Take Photo</span>
+                            </div>
                         </div>
                     </div>
+                    <div id="image-previews" class="image-previews"></div>
                 </div>
 
                 <div class="modal-actions">
@@ -595,6 +675,9 @@
                         <label>Group</label>
                         <p id="view-group"></p>
                     </div>
+
+                    <!-- Gallery Thumbnails -->
+                    <div id="view-gallery" class="gallery-container"></div>
                 </div>
             </div>
         </div>
@@ -640,8 +723,14 @@
             const addItemForm = document.getElementById('add-item-form');
             const itemsGrid = document.getElementById('items-grid');
 
-            const fileInput = document.getElementById('image');
-            const fileLabel = document.querySelector('.file-custom-label span');
+            const itemsGrid = document.getElementById('items-grid');
+
+            // Image Input Elements
+            const uploadInput = document.getElementById('image-upload');
+            const cameraInput = document.getElementById('camera-upload');
+            const previewContainer = document.getElementById('image-previews');
+
+            let currentImages = []; // Stores Base64 strings
 
             // Settings Elements
             const exportBtn = document.getElementById('export-btn');
@@ -684,16 +773,66 @@
                 }
             });
 
-            // File input change
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    fileLabel.textContent = e.target.files[0].name;
-                } else {
-                    fileLabel.textContent = 'Choose an image...';
-                }
-            });
+            // --- Image Handling Logic ---
 
-            // Form Submit
+            function handleImageSelect(e, source) {
+                const files = Array.from(e.target.files);
+                if (!files.length) return;
+
+                // Enforce Limits
+                const uploadCount = currentImages.filter(img => img.source === 'upload').length;
+                const cameraCount = currentImages.filter(img => img.source === 'camera').length;
+
+                files.forEach(file => {
+                    // Check limits based on source
+                    if (source === 'upload' && uploadCount >= 5) {
+                        alert('Max 5 uploaded images allowed.');
+                        return;
+                    }
+                    if (source === 'camera' && cameraCount >= 5) {
+                        alert('Max 5 camera photos allowed.');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const imgData = {
+                            data: event.target.result,
+                            source: source,
+                            id: Date.now() + Math.random() // Temp ID for removal
+                        };
+                        currentImages.push(imgData);
+                        renderPreviews();
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                // Reset inputs to allow selecting same file again
+                e.target.value = '';
+            }
+
+            uploadInput.addEventListener('change', (e) => handleImageSelect(e, 'upload'));
+            cameraInput.addEventListener('change', (e) => handleImageSelect(e, 'camera'));
+
+            function renderPreviews() {
+                previewContainer.innerHTML = '';
+                currentImages.forEach((img, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'preview-container';
+                    div.innerHTML = `
+                        <img src="${img.data}" class="preview-thumb">
+                        <button class="remove-thumb" onclick="removeImage(${index})">×</button>
+                    `;
+                    previewContainer.appendChild(div);
+                });
+            }
+
+            window.removeImage = (index) => {
+                currentImages.splice(index, 1);
+                renderPreviews();
+            };
+
+            // Form Submit Logic
             addItemForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
@@ -702,23 +841,16 @@
                 submitBtn.disabled = true;
 
                 try {
-                    const file = fileInput.files[0];
-                    let imageData = null;
-
-                    if (file) {
-                        imageData = await new Promise((resolve) => {
-                            const reader = new FileReader();
-                            reader.onload = (e) => resolve(e.target.result);
-                            reader.readAsDataURL(file);
-                        });
-                    }
+                    // Collect just the data strings
+                    const finalImages = currentImages.map(img => img.data);
 
                     const newItem = {
                         name: document.getElementById('name').value,
                         price: parseFloat(document.getElementById('price').value),
                         description: document.getElementById('description').value,
                         group: document.getElementById('group').value.trim(),
-                        image: imageData,
+                        images: finalImages, // Save array
+                        image: finalImages.length > 0 ? finalImages[0] : null, // Legacy support for main cover
                         created: new Date().toISOString()
                     };
 
@@ -733,7 +865,8 @@
 
                         modal.classList.remove('active');
                         addItemForm.reset();
-                        fileLabel.textContent = 'Choose an image...';
+                        currentImages = []; // Clear array
+                        renderPreviews(); // Clear UI
                         submitBtn.textContent = 'Add into Collection';
                         submitBtn.disabled = false;
                     };
@@ -860,11 +993,33 @@
                     }
 
 
-                    const img = document.getElementById('view-image');
-                    if (item.image) {
-                        img.src = item.image;
+                    // Gallery Logic
+                    const galleryContainer = document.getElementById('view-gallery');
+                    galleryContainer.innerHTML = '';
+
+                    const imagesList = item.images || (item.image ? [item.image] : []);
+                    const mainImg = document.getElementById('view-image');
+
+                    if (imagesList.length > 0) {
+                        mainImg.src = imagesList[0];
+
+                        // Render Thumbnails
+                        imagesList.forEach((imgSrc) => {
+                            const thumb = document.createElement('img');
+                            thumb.src = imgSrc;
+                            thumb.className = 'gallery-thumb';
+                            if (imgSrc === imagesList[0]) thumb.classList.add('active');
+
+                            thumb.onclick = () => {
+                                mainImg.src = imgSrc;
+                                document.querySelectorAll('.gallery-thumb').forEach(t => t.classList.remove('active'));
+                                thumb.classList.add('active');
+                            };
+
+                            galleryContainer.appendChild(thumb);
+                        });
                     } else {
-                        img.src = 'https://placehold.co/600x400/1a1d24/FFF?text=No+Image';
+                        mainImg.src = 'https://placehold.co/600x400/1a1d24/FFF?text=No+Image';
                     }
 
                     document.getElementById('view-modal').classList.add('active');
