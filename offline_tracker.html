@@ -625,7 +625,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="price">Price ($)</label>
+                    <label for="price">Price (₱)</label>
                     <input type="number" id="price" name="price" step="0.01" required placeholder="0.00">
                 </div>
 
@@ -812,6 +812,7 @@
 
             let currentImages = []; // Stores Base64 strings
             let editingId = null; // Track if we are editing an existing item
+            let editingCreated = null; // Track original creation date
 
             // Search Vars
             let allItems = []; // Cache for filtering
@@ -839,6 +840,7 @@
             // Modal Controls
             addBtn.addEventListener('click', () => {
                 editingId = null; // Reset to Add Mode
+                editingCreated = null;
                 addItemForm.reset();
                 document.querySelector('#modal h2').textContent = 'Add New Item';
                 addItemForm.querySelector('.btn-submit').textContent = 'Add into Collection';
@@ -952,8 +954,9 @@
                         group: document.getElementById('group').value.trim(),
                         images: finalImages, // Save array
                         image: finalImages.length > 0 ? finalImages[0] : null, // Legacy support for main cover
-                        created: editingId ? undefined : new Date().toISOString() // Keep original date if editing
+                        created: editingId ? editingCreated : new Date().toISOString() // Keep original date if editing
                     };
+
 
                     const transaction = db.transaction([STORE_NAME], "readwrite");
                     const objectStore = transaction.objectStore(STORE_NAME);
@@ -992,7 +995,7 @@
 
                 } catch (error) {
                     console.error(error);
-                    alert('An error occurred');
+                    alert('Error: ' + error.message);
                     submitBtn.textContent = 'Add into Collection';
                     submitBtn.disabled = false;
                 }
@@ -1085,7 +1088,7 @@
                     <div class="card-content">
                         <div class="card-header">
                             <h3 class="card-title">${item.name}</h3>
-                            <span class="card-price">$${item.price.toFixed(2)}</span>
+                            <span class="card-price">₱${item.price.toFixed(2)}</span>
                         </div>
                         <p class="card-desc">${item.description || 'No description provided.'}</p>
                     </div>
@@ -1094,7 +1097,7 @@
                 // Add View Functionality
                 card.onclick = () => {
                     document.getElementById('view-name').textContent = item.name;
-                    document.getElementById('view-price').textContent = '$' + item.price.toFixed(2);
+                    document.getElementById('view-price').textContent = '₱' + item.price.toFixed(2);
                     document.getElementById('view-description').textContent = item.description || 'No description provided.';
 
                     const groupEl = document.getElementById('view-group');
@@ -1153,18 +1156,14 @@
                     document.getElementById('view-modal').classList.add('active');
                 };
 
-                // Add event listener for delete to avoid triggering the card click
-                // This time we need to be careful with onclick event bubbling
-                card.querySelector('.delete-btn').onclick = (e) => {
-                    e.stopPropagation();
-                    deleteItem(item.id, card);
-                }
+
 
                 container.insertBefore(card, container.firstChild);
             }
 
             function openEditModal(item) {
                 editingId = item.id;
+                editingCreated = item.created;
 
                 // Populate Form
                 document.getElementById('name').value = item.name;
@@ -1299,6 +1298,7 @@
 
                 window.location.reload(true);
             });
+
         }
 
         // Register Service Worker
