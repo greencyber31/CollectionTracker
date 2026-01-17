@@ -691,7 +691,7 @@
         <div id="back-nav-container" style="display: none; padding: 0 20px; margin-bottom: 10px;">
             <button id="back-to-groups-btn" class="btn-primary"
                 style="padding: 8px 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-secondary);">
-                <i class="fa-solid fa-arrow-left"></i> Back to Groups
+                <i class="fa-solid fa-arrow-left"></i> Back to Collections
             </button>
         </div>
 
@@ -1209,6 +1209,14 @@
                     });
                 }
             }
+
+            // Back Button Logic
+            document.querySelector('#back-to-groups-btn').addEventListener('click', () => {
+                activeGroup = null;
+                searchInput.value = '';
+                renderItems(allItems);
+            });
+
 
 
             function updateGroupSuggestions(items) {
