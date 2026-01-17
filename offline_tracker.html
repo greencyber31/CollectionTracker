@@ -21,8 +21,12 @@
             --bg-dark: #0f1115;
             --text-primary: #ededed;
             --text-secondary: #a0a0a0;
-            --accent: #6c5ce7;
-            --accent-hover: #5649c0;
+            --accent: #2c3e50;
+            /* Midnight Blue Base */
+            --accent-bright: #3498db;
+            /* Brighter Blue for pops */
+            --accent-hover: #1abc9c;
+            /* Teal for interaction */
             --glass-bg: rgba(255, 255, 255, 0.03);
             --glass-border: rgba(255, 255, 255, 0.08);
             --card-hover: rgba(255, 255, 255, 0.06);
@@ -54,7 +58,7 @@
             position: fixed;
             width: 600px;
             height: 600px;
-            background: radial-gradient(circle, rgba(108, 92, 231, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+            background: radial-gradient(circle, rgba(44, 62, 80, 0.25) 0%, rgba(0, 0, 0, 0) 70%);
             top: -200px;
             left: -200px;
             z-index: -1;
@@ -66,7 +70,7 @@
             bottom: -200px;
             left: auto;
             right: -200px;
-            background: radial-gradient(circle, rgba(231, 92, 168, 0.1) 0%, rgba(0, 0, 0, 0) 70%);
+            background: radial-gradient(circle, rgba(52, 152, 219, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
         }
 
         .app-container {
@@ -91,7 +95,7 @@
 
         .logo i {
             font-size: 24px;
-            color: var(--accent);
+            color: var(--accent-bright);
         }
 
         .logo h1 {
@@ -101,11 +105,11 @@
         }
 
         .logo h1 span {
-            color: var(--accent);
+            color: var(--accent-bright);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--accent), #a29bfe);
+            background: linear-gradient(135deg, var(--accent-bright), var(--accent));
             color: white;
             border: none;
             padding: 12px 24px;
@@ -117,12 +121,12 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
         }
 
         .btn-primary:active {
@@ -502,7 +506,7 @@
         }
 
         .group-header:hover {
-            color: var(--accent);
+            color: var(--accent-bright);
         }
 
         .group-header i.fa-chevron-down {
@@ -1176,7 +1180,7 @@
                              <img src="${coverImage}" class="card-image" style="opacity: 0.8;">
                              <div class="card-content">
                                  <div class="card-header">
-                                     <h3 class="card-title"><i class="fa-solid fa-folder" style="color: var(--accent); margin-right: 8px;"></i>${groupName}</h3>
+                                     <h3 class="card-title"><i class="fa-solid fa-folder" style="color: var(--accent-bright); margin-right: 8px;"></i>${groupName}</h3>
                                  </div>
                                  <p class="card-desc" style="margin-top: 5px;">${groupItems.length} items</p>
                              </div>
