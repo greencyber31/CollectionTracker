@@ -170,8 +170,8 @@
 
         .items-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
         }
 
         .loading-state {
@@ -202,7 +202,7 @@
 
         .card-image {
             width: 100%;
-            height: 200px;
+            height: 140px;
             object-fit: cover;
             background-color: #1a1d24;
         }
@@ -496,9 +496,41 @@
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 1px solid var(--glass-border);
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .group-header:hover {
+            color: var(--accent);
+        }
+
+        .group-header i.fa-chevron-down {
+            margin-left: auto;
+            font-size: 16px;
+            transition: transform 0.3s;
+        }
+
+        .group-header.collapsed i.fa-chevron-down {
+            transform: rotate(-90deg);
+        }
+
+        .group-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+            transition: all 0.3s ease;
+            max-height: 5000px;
+            /* Arbitrary large height */
+            opacity: 1;
+            overflow: hidden;
+        }
+
+        .group-items.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            gap: 0;
         }
 
         .group-header i {
@@ -1121,15 +1153,29 @@
                     groupContainer.className = 'group-container';
                     groupContainer.style.gridColumn = "1 / -1";
 
-                    const itemsContainer = document.createElement('div');
-                    itemsContainer.className = 'items-grid';
-
-                    groupContainer.innerHTML = `
-                        <div class="group-header">
-                            <i class="fa-solid fa-layer-group"></i> ${groupName}
-                        </div>
+                    const header = document.createElement('div');
+                    header.className = 'group-header';
+                    header.innerHTML = `
+                         <span><i class="fa-solid fa-layer-group" style="margin-right: 10px; color: var(--accent);"></i> ${groupName}</span>
+                         <i class="fa-solid fa-chevron-down"></i>
                     `;
 
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.className = 'group-items'; // Use new class instead of items-grid to avoid nested grid issues if any, but actually items-grid styles are what we want.
+                    // Let's use both or just group-items and replicate styles? Use inherited grid style from CSS change above.
+                    // Wait, items-grid is selector for the MAIN container too.
+                    // The CSS modification changed .items-grid.
+                    // Let's make sure the inner container uses the grid layout.
+                    itemsContainer.classList.add('items-grid');
+                    itemsContainer.classList.add('group-items'); // For collapse logic
+
+                    // Toggle Logic
+                    header.addEventListener('click', () => {
+                        header.classList.toggle('collapsed');
+                        itemsContainer.classList.toggle('collapsed');
+                    });
+
+                    groupContainer.appendChild(header);
                     groupContainer.appendChild(itemsContainer);
                     itemsGrid.appendChild(groupContainer);
 
