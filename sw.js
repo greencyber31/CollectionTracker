@@ -1,4 +1,4 @@
-const CACHE_NAME = 'collection-tracker-v20';
+const CACHE_NAME = 'collection-tracker-v21';
 const ASSETS = [
     './',
     './offline_tracker.html',

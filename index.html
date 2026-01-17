@@ -1204,11 +1204,22 @@
                     groups[groupName].push(item);
                 });
 
+                // Restore state if first load and not set manually
+                if (activeGroup === null && localStorage.getItem('lastActiveGroup')) {
+                    const lastGroup = localStorage.getItem('lastActiveGroup');
+                    if (groups[lastGroup]) {
+                        activeGroup = lastGroup;
+                    } else {
+                        localStorage.removeItem('lastActiveGroup'); // Clean up invalid state
+                    }
+                }
+
                 itemsGrid.innerHTML = ''; // Clear grid
 
                 // Dashboard View (Show Group Cards)
                 if (activeGroup === null) {
                     backNav.style.display = 'none';
+                    localStorage.removeItem('lastActiveGroup'); // Ensure we are in dashboard mode
 
                     Object.keys(groups).sort().forEach(groupName => {
                         const groupItems = groups[groupName];
@@ -1229,6 +1240,7 @@
 
                         card.onclick = () => {
                             activeGroup = groupName;
+                            localStorage.setItem('lastActiveGroup', activeGroup);
                             renderItems(allItems); // Re-render with active group
                         };
 
@@ -1244,6 +1256,7 @@
 
                     if (groupItems.length === 0) {
                         activeGroup = null; // Reset if group empty/deleted
+                        localStorage.removeItem('lastActiveGroup');
                         renderItems(allItems);
                         return;
                     }
@@ -1258,6 +1271,7 @@
             // Back Button Logic
             document.querySelector('#back-to-groups-btn').addEventListener('click', () => {
                 activeGroup = null;
+                localStorage.removeItem('lastActiveGroup');
                 searchInput.value = '';
                 renderItems(allItems);
             });
