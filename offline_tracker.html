@@ -37,6 +37,11 @@
         }
 
         body {
+            /* iOS Safe Area */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
             background-color: var(--bg-dark);
             color: var(--text-primary);
             min-height: 100vh;
@@ -124,7 +129,45 @@
             transform: translateY(0);
         }
 
-        /* Grid */
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* Search Bar */
+        .search-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 16px 20px 16px 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            color: var(--text-primary);
+            font-size: 1.1em;
+            font-family: 'Outfit', sans-serif;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(108, 92, 231, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 1.2em;
+            pointer-events: none;
+        }
+
         .items-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -540,18 +583,23 @@
     <div class="app-container">
         <header>
             <div class="logo">
-                <i class="fa-solid fa-layer-group"></i>
+                <i class="fa-solid fa-cube"></i>
                 <h1>Collection<span>Tracker</span></h1>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button id="settings-btn" class="btn-primary" style="background: var(--glass-bg); padding: 12px;">
+                <button id="settings-btn" class="btn-primary" style="padding: 10px 15px;">
                     <i class="fa-solid fa-gear"></i>
                 </button>
                 <button id="add-btn" class="btn-primary">
-                    <i class="fa-solid fa-plus"></i> Add New Item
+                    <i class="fa-solid fa-plus"></i> Add Item
                 </button>
             </div>
         </header>
+
+        <div class="search-container">
+            <i class="fa-solid fa-search search-icon"></i>
+            <input type="text" id="search-input" class="search-input" placeholder="Search items...">
+        </div>
 
         <main>
             <div id="items-grid" class="items-grid">
@@ -765,6 +813,10 @@
             let currentImages = []; // Stores Base64 strings
             let editingId = null; // Track if we are editing an existing item
 
+            // Search Vars
+            let allItems = []; // Cache for filtering
+            const searchInput = document.getElementById('search-input');
+
             // Settings Elements
             const exportBtn = document.getElementById('export-btn');
             const importBtn = document.getElementById('import-btn');
@@ -773,6 +825,16 @@
 
             // Load initial data
             loadItems();
+
+            // Search Logic
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = allItems.filter(item =>
+                    item.name.toLowerCase().includes(term) ||
+                    (item.group && item.group.toLowerCase().includes(term))
+                );
+                renderItems(filtered);
+            });
 
             // Modal Controls
             addBtn.addEventListener('click', () => {
@@ -937,61 +999,64 @@
             });
 
             function loadItems() {
-                itemsGrid.innerHTML = '';
                 const transaction = db.transaction([STORE_NAME], "readonly");
                 const objectStore = transaction.objectStore(STORE_NAME);
                 const request = objectStore.getAll(); // get all items
 
                 request.onsuccess = (event) => {
-                    const items = event.target.result;
-
-                    // Update Suggestions
-                    updateGroupSuggestions(items);
-
-                    if (!items || items.length === 0) {
-                        itemsGrid.innerHTML = `
-                            <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">
-                                <i class="fa-solid fa-box-open" style="font-size: 40px; margin-bottom: 20px; opacity: 0.5;"></i>
-                                <p>No items in your collection yet.</p>
-                            </div>
-                        `;
-                    } else {
-                        // Group Items
-                        const groups = {};
-
-                        items.forEach(item => {
-                            const groupName = item.group || 'General';
-                            if (!groups[groupName]) {
-                                groups[groupName] = [];
-                            }
-                            groups[groupName].push(item);
-                        });
-
-                        // Render Groups
-                        Object.keys(groups).sort().forEach(groupName => {
-                            const groupContainer = document.createElement('div');
-                            groupContainer.className = 'group-container';
-                            groupContainer.style.gridColumn = "1 / -1";
-
-                            const itemsContainer = document.createElement('div');
-                            itemsContainer.className = 'items-grid';
-
-                            groupContainer.innerHTML = `
-                                <div class="group-header">
-                                    <i class="fa-solid fa-layer-group"></i> ${groupName}
-                                </div>
-                            `;
-
-                            groupContainer.appendChild(itemsContainer);
-                            itemsGrid.appendChild(groupContainer);
-
-                            // Sort items in group by ID descending
-                            groups[groupName].sort((a, b) => b.id - a.id).forEach(item => {
-                                addItemToDOM(item, itemsContainer);
-                            });
-                        });
-                    }
+                    allItems = event.target.result; // Cache items
+                    updateGroupSuggestions(allItems);
+                    renderItems(allItems);
                 };
+            }
+
+            function renderItems(items) {
+                itemsGrid.innerHTML = '';
+
+                if (!items || items.length === 0) {
+                    itemsGrid.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">
+                            <i class="fa-solid fa-box-open" style="font-size: 40px; margin-bottom: 20px; opacity: 0.5;"></i>
+                            <p>No items found.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Group Items
+                const groups = {};
+
+                items.forEach(item => {
+                    const groupName = item.group || 'General';
+                    if (!groups[groupName]) {
+                        groups[groupName] = [];
+                    }
+                    groups[groupName].push(item);
+                });
+
+                // Render Groups
+                Object.keys(groups).sort().forEach(groupName => {
+                    const groupContainer = document.createElement('div');
+                    groupContainer.className = 'group-container';
+                    groupContainer.style.gridColumn = "1 / -1";
+
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.className = 'items-grid';
+
+                    groupContainer.innerHTML = `
+                        <div class="group-header">
+                            <i class="fa-solid fa-layer-group"></i> ${groupName}
+                        </div>
+                    `;
+
+                    groupContainer.appendChild(itemsContainer);
+                    itemsGrid.appendChild(groupContainer);
+
+                    // Sort items in group by ID descending
+                    groups[groupName].sort((a, b) => b.id - a.id).forEach(item => {
+                        addItemToDOM(item, itemsContainer);
+                    });
+                });
             }
 
             function updateGroupSuggestions(items) {
@@ -1015,9 +1080,7 @@
                 const card = document.createElement('div');
                 card.className = 'item-card';
                 card.innerHTML = `
-                    <button class="delete-btn" onclick="deleteItem(this, ${item.id})">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
+
                     <img src="${item.image ? item.image : 'https://placehold.co/600x400/1a1d24/FFF?text=No+Image'}" alt="${item.name}" class="card-image">
                     <div class="card-content">
                         <div class="card-header">
@@ -1073,6 +1136,20 @@
                         mainImg.src = 'https://placehold.co/600x400/1a1d24/FFF?text=No+Image';
                     }
 
+                    // Setup Actions
+                    const deleteBtn = document.getElementById('view-delete-btn');
+                    deleteBtn.onclick = () => {
+                        if (!confirm('Are you sure you want to delete this item?')) return;
+                        deleteItem(item.id);
+                        document.getElementById('view-modal').classList.remove('active');
+                    };
+
+                    const editBtn = document.getElementById('view-edit-btn');
+                    editBtn.onclick = () => {
+                        document.getElementById('view-modal').classList.remove('active');
+                        openEditModal(item);
+                    };
+
                     document.getElementById('view-modal').classList.add('active');
                 };
 
@@ -1086,22 +1163,41 @@
                 container.insertBefore(card, container.firstChild);
             }
 
-            window.deleteItem = (id, cardElement) => {
-                if (!confirm('Are you sure you want to delete this item?')) return;
+            function openEditModal(item) {
+                editingId = item.id;
 
+                // Populate Form
+                document.getElementById('name').value = item.name;
+                document.getElementById('price').value = item.price;
+                document.getElementById('description').value = item.description;
+                document.getElementById('group').value = item.group || '';
+
+                // Populate Images
+                currentImages = [];
+                const imagesList = item.images || (item.image ? [item.image] : []);
+                imagesList.forEach((imgData, idx) => {
+                    currentImages.push({
+                        data: imgData,
+                        source: 'existing',
+                        id: idx
+                    });
+                });
+                renderPreviews();
+
+                // Change UI to Edit Mode
+                document.querySelector('#modal h2').textContent = 'Edit Item';
+                addItemForm.querySelector('.btn-submit').textContent = 'Update Item';
+
+                document.getElementById('modal').classList.add('active');
+            }
+
+            window.deleteItem = (id) => {
                 const transaction = db.transaction([STORE_NAME], "readwrite");
                 const objectStore = transaction.objectStore(STORE_NAME);
                 const request = objectStore.delete(id);
 
                 request.onsuccess = () => {
-                    cardElement.style.transform = 'scale(0.9)';
-                    cardElement.style.opacity = '0';
-                    setTimeout(() => {
-                        cardElement.remove();
-                        if (itemsGrid.querySelector('.item-card') === null) {
-                            loadItems(); // Restore empty state if needed
-                        }
-                    }, 300);
+                    loadItems(); // Reload grid
                 };
             };
 
