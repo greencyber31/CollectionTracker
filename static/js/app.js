@@ -9,6 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('image');
     const fileLabel = document.querySelector('.file-custom-label span');
 
+    // Sidebar & Search Elements
+    const menuBtn = document.getElementById('menu-btn');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const sidebarMenu = document.getElementById('sidebar-menu');
+    const searchInput = document.getElementById('search-input');
+
+    let allItems = []; // Store fetched items for filtering
+    let activeGroup = null;
+
     // Load initial data
     fetchItems();
 
@@ -37,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // File input change handler for better UX
+    // File input change handler
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
             fileLabel.textContent = e.target.files[0].name;
@@ -45,6 +55,103 @@ document.addEventListener('DOMContentLoaded', () => {
             fileLabel.textContent = 'Choose an image...';
         }
     });
+
+    // Sidebar Logic
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+            if (sidebar) sidebar.classList.add('active');
+            if (sidebarOverlay) sidebarOverlay.classList.add('active');
+            renderSidebarMenu();
+        });
+    }
+
+    function closeSidebar() {
+        if (sidebar) sidebar.classList.remove('active');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+    }
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+
+    // Search Logic
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            filterItems();
+        });
+    }
+
+    function filterItems() {
+        const term = searchInput ? searchInput.value.toLowerCase() : '';
+
+        const filtered = allItems.filter(item => {
+            const matchesSearch = item.name.toLowerCase().includes(term) ||
+                (item.group && item.group.toLowerCase().includes(term));
+
+            // Note: Flask app might not have 'group' property on items yet if DB doesn't support it.
+            // But we should handle it gracefully.
+            const itemGroup = item.group || 'General';
+            const matchesGroup = activeGroup ? (itemGroup === activeGroup || (!item.group && activeGroup === 'General')) : true;
+
+            return matchesSearch && matchesGroup;
+        });
+
+        renderItems(filtered);
+    }
+
+    function renderSidebarMenu() {
+        if (!sidebarMenu) return;
+        sidebarMenu.innerHTML = '';
+
+        // Generate Unique Groups
+        const groups = new Set();
+        allItems.forEach(item => {
+            if (item.group) groups.add(item.group);
+            else groups.add('General');
+        });
+
+        // Add "All Items"
+        const allBtn = document.createElement('button');
+        allBtn.className = `sidebar-item ${activeGroup === null ? 'active' : ''}`;
+        allBtn.innerHTML = `<i class="fa-solid fa-layer-group"></i> All Items`;
+        allBtn.onclick = () => {
+            activeGroup = null;
+            filterItems();
+            closeSidebar();
+        };
+        sidebarMenu.appendChild(allBtn);
+
+        // Add Groups
+        Array.from(groups).sort().forEach(group => {
+            const btn = document.createElement('button');
+            btn.className = `sidebar-item ${activeGroup === group ? 'active' : ''}`;
+            // Icon logic
+            let icon = 'fa-folder';
+            if (group === 'General') icon = 'fa-box-archive';
+
+            btn.innerHTML = `<i class="fa-solid ${icon}"></i> ${group}`;
+            btn.onclick = () => {
+                activeGroup = group;
+                filterItems();
+                closeSidebar();
+            };
+            sidebarMenu.appendChild(btn);
+        });
+    }
+
+    function renderItems(items) {
+        itemsGrid.innerHTML = '';
+        if (items.length === 0) {
+            itemsGrid.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <i class="fa-solid fa-box-open" style="font-size: 40px; margin-bottom: 20px; opacity: 0.5;"></i>
+                    <p>No items found.</p>
+                </div>
+            `;
+            return;
+        }
+        items.forEach(addItemToDOM);
+    }
 
     // Form Submission
     addItemForm.addEventListener('submit', async (e) => {
@@ -73,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: document.getElementById('name').value,
                 price: parseFloat(document.getElementById('price').value),
                 description: document.getElementById('description').value,
+                group: document.getElementById('group').value.trim(),
                 image: imageData,
                 image_filename: imageName
             };
@@ -87,7 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 const newItem = await response.json();
-                addItemToDOM(newItem);
+                allItems.unshift(newItem); // Add to local list
+                filterItems(); // Re-render
                 modal.classList.remove('active');
                 addItemForm.reset();
                 fileLabel.textContent = 'Choose an image...';
@@ -106,21 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchItems() {
         try {
             const response = await fetch('/api/items');
-            const items = await response.json();
-
-            itemsGrid.innerHTML = ''; // Clear loading state
-
-            if (items.length === 0) {
-                itemsGrid.innerHTML = `
-                    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">
-                        <i class="fa-solid fa-box-open" style="font-size: 40px; margin-bottom: 20px; opacity: 0.5;"></i>
-                        <p>No items in your collection yet.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            items.forEach(addItemToDOM);
+            allItems = await response.json();
+            renderItems(allItems);
         } catch (error) {
             console.error('Error fetching items:', error);
             itemsGrid.innerHTML = '<p style="text-align: center; color: #ff6b6b">Failed to load items.</p>';
@@ -128,10 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addItemToDOM(item) {
-        // If it was empty state, clear it first
-        if (itemsGrid.querySelector('.fa-box-open')) {
-            itemsGrid.innerHTML = '';
-        }
+        // Only if we modify DOM directly (bypassing renderItems), but current logic uses renderItems/filterItems.
+        // Keeping logic for card creation.
 
         const card = document.createElement('div');
         card.className = 'item-card';
@@ -161,8 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteItem(item.id, card);
         });
 
-        // Prepend so new items show up first
-        itemsGrid.insertBefore(card, itemsGrid.firstChild);
+        itemsGrid.appendChild(card); // Append instead of prepend because renderItems clears grid and iterates
     }
 
     function openViewModal(item) {
@@ -193,8 +286,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 cardElement.style.opacity = '0';
                 setTimeout(() => {
                     cardElement.remove();
+                    allItems = allItems.filter(i => i.id !== id);
                     if (itemsGrid.children.length === 0) {
-                        fetchItems(); // Restore empty state
+                        renderItems([]);
                     }
                 }, 300);
             }

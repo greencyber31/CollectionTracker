@@ -23,9 +23,18 @@ def init_db():
             name TEXT NOT NULL,
             description TEXT,
             price REAL NOT NULL,
-            image_filename TEXT
+            image_filename TEXT,
+            group_name TEXT
         )
     ''')
+    
+    # Migration: Add group_name column if it doesn't exist
+    try:
+        c.execute('ALTER TABLE items ADD COLUMN group_name TEXT')
+    except sqlite3.OperationalError:
+        # Column likely already exists
+        pass
+        
     conn.commit()
     conn.close()
 
@@ -52,6 +61,7 @@ class CollectionHandler(http.server.SimpleHTTPRequestHandler):
                     'description': row['description'],
                     'price': row['price'],
                     'image_filename': row['image_filename']
+            'group': row['group_name']
                 })
             conn.close()
             self.wfile.write(json.dumps(items).encode())
@@ -130,10 +140,15 @@ class CollectionHandler(http.server.SimpleHTTPRequestHandler):
 
             conn = sqlite3.connect(DB_FILE)
             c = conn.cursor()
+            
+            # Handle group_name
+            group_name = data.get('group', 'General') # Default to General
+            if not group_name: group_name = 'General'
+
             c.execute('''
-                INSERT INTO items (name, description, price, image_filename)
-                VALUES (?, ?, ?, ?)
-            ''', (data['name'], data['description'], data['price'], image_filename))
+                INSERT INTO items (name, description, price, image_filename, group_name)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (data['name'], data['description'], data['price'], image_filename, group_name))
             item_id = c.lastrowid
             conn.commit()
             
@@ -143,7 +158,8 @@ class CollectionHandler(http.server.SimpleHTTPRequestHandler):
                 'name': data['name'],
                 'description': data['description'],
                 'price': data['price'],
-                'image_filename': image_filename
+                'image_filename': image_filename,
+                'group': group_name
             }
             conn.close()
             

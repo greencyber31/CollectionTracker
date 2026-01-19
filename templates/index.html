@@ -25,6 +25,12 @@
             </button>
         </header>
 
+        <div class="search-container">
+            <button id="menu-btn" class="menu-btn"><i class="fa-solid fa-bars"></i></button>
+            <i class="fa-solid fa-search search-icon"></i>
+            <input type="text" id="search-input" class="search-input" placeholder="Search items...">
+        </div>
+
         <main>
             <div id="items-grid" class="items-grid">
                 <!-- Items will be injected here by JS -->
@@ -34,6 +40,18 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar-overlay"></div>
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <i class="fa-solid fa-cube" style="color: var(--accent); font-size: 24px;"></i>
+            <h2>Collections</h2>
+        </div>
+        <div id="sidebar-menu" class="sidebar-menu">
+            <!-- Items injected by JS -->
+        </div>
     </div>
 
     <!-- Add Item Modal -->
@@ -57,6 +75,11 @@
                 <div class="form-group">
                     <label for="description">Description</label>
                     <textarea id="description" name="description" rows="3" placeholder="Item details..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="group">Group / Category (Optional)</label>
+                    <input type="text" id="group" name="group" placeholder="e.g. Cameras, Lenses">
                 </div>
 
                 <div class="form-group">
