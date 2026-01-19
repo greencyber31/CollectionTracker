@@ -419,7 +419,7 @@ header {
 
 .search-input {
     width: 100%;
-    padding: 16px 20px 16px 90px;
+    padding: 16px 20px 16px 115px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
@@ -438,7 +438,7 @@ header {
 
 .search-icon {
     position: absolute;
-    left: 55px;
+    left: 75px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-secondary);
@@ -455,7 +455,7 @@ header {
     background: none;
     border: none;
     color: var(--text-secondary);
-    font-size: 20px;
+    font-size: 40px;
     cursor: pointer;
     z-index: 10;
     padding: 5px;
