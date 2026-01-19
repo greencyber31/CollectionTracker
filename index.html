@@ -1412,76 +1412,32 @@
                     return;
                 }
 
-                // Group Data Logic
-                const groups = {};
-                items.forEach(item => {
-                    const groupName = item.group || 'General';
-                    if (!groups[groupName]) groups[groupName] = [];
-                    groups[groupName].push(item);
-                });
-
-                // Restore state if first load and not set manually
-                if (activeGroup === null && localStorage.getItem('lastActiveGroup')) {
-                    const lastGroup = localStorage.getItem('lastActiveGroup');
-                    if (groups[lastGroup]) {
-                        activeGroup = lastGroup;
-                    } else {
-                        localStorage.removeItem('lastActiveGroup'); // Clean up invalid state
-                    }
+                // Group Filter Logic
+                let itemsToRender = items;
+                if (activeGroup) {
+                    itemsToRender = items.filter(item => item.group === activeGroup);
+                    backNav.style.display = 'none'; // Sidebar handles valid navigation
+                } else {
+                    backNav.style.display = 'none';
+                    localStorage.removeItem('lastActiveGroup');
                 }
 
                 itemsGrid.innerHTML = ''; // Clear grid
 
-                // Dashboard View (Show Group Cards)
-                if (activeGroup === null) {
-                    backNav.style.display = 'none';
-                    localStorage.removeItem('lastActiveGroup'); // Ensure we are in dashboard mode
-
-                    Object.keys(groups).sort().forEach(groupName => {
-                        const groupItems = groups[groupName];
-                        const coverItem = groupItems.find(i => i.image) || groupItems[0];
-                        const coverImage = coverItem && coverItem.image ? coverItem.image : 'https://placehold.co/600x400/1a1d24/FFF?text=Folder';
-
-                        const card = document.createElement('div');
-                        card.className = 'item-card'; // Reuse item card style
-                        card.innerHTML = `
-                             <img src="${coverImage}" class="card-image" style="opacity: 0.8;">
-                             <div class="card-content">
-                                 <div class="card-header">
-                                     <h3 class="card-title"><i class="fa-solid fa-folder" style="color: var(--accent-bright); margin-right: 8px;"></i>${groupName}</h3>
-                                 </div>
-                                 <p class="card-desc" style="margin-top: 5px;">${groupItems.length} items</p>
-                             </div>
-                        `;
-
-                        card.onclick = () => {
-                            activeGroup = groupName;
-                            localStorage.setItem('lastActiveGroup', activeGroup);
-                            renderItems(allItems); // Re-render with active group
-                        };
-
-                        itemsGrid.appendChild(card);
-                    });
+                if (itemsToRender.length === 0) {
+                    itemsGrid.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-secondary);">
+                            <i class="fa-solid fa-box-open" style="font-size: 40px; margin-bottom: 20px; opacity: 0.5;"></i>
+                            <p>No items found${activeGroup ? ' in ' + activeGroup : ''}.</p>
+                        </div>
+                    `;
+                    return;
                 }
-                // Group Detail View (Show Items in Group)
-                else {
-                    backNav.style.display = 'block';
 
-                    // Filter items for active group
-                    const groupItems = groups[activeGroup] || [];
-
-                    if (groupItems.length === 0) {
-                        activeGroup = null; // Reset if group empty/deleted
-                        localStorage.removeItem('lastActiveGroup');
-                        renderItems(allItems);
-                        return;
-                    }
-
-                    // Sort items in group by ID descending
-                    groupItems.sort((a, b) => b.id - a.id).forEach(item => {
-                        addItemToDOM(item, itemsGrid);
-                    });
-                }
+                // Render Items
+                itemsToRender.sort((a, b) => b.id - a.id).forEach(item => {
+                    addItemToDOM(item, itemsGrid);
+                });
             }
 
             // Back Button Logic
