@@ -406,6 +406,9 @@ header {
     color: #e0e0e0;
     white-space: pre-wrap;
     /* Preserve line breaks */
+    word-break: break-word;
+    /* Fix long words not wrapping */
+    overflow-wrap: break-word;
 }
 
 /* Search Bar */
